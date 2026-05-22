@@ -8,13 +8,33 @@ monetize later (donations / halal sponsors / digital product).
 
 ---
 
-## 🟢 LIVE as of 2026-05-22
+## 🟢 LIVE — READ THIS FIRST (last updated 2026-05-22)
 
-Fully automated and posting. Repo: **github.com/AvaisOnn/quran-reels** (public).
-First reel (page 1, Al-Fatihah) posted to **@thepathtonoor2026**. Cron runs 3×/day.
-Both Action secrets set: `IG_USER_ID`=17841431955731562, `IG_ACCESS_TOKEN` (long-lived,
-expires ~2026-07-21 — re-set before then via `gh secret set IG_ACCESS_TOKEN` in a real
-Terminal, NOT the Claude `!` prompt, which sets an empty value).
+**The whole pipeline is built, deployed, and auto-posting. Nothing is required to keep
+it running** except one ~60-day token refresh (see below). Resume only if Avais asks
+for a change or something broke.
+
+- **Repo (public):** github.com/AvaisOnn/quran-reels
+- **Instagram:** @thepathtonoor2026 · **FB Page:** "The Path of Noor" (ID 1190981554088688)
+- **Posted so far:** page 1 (Al-Fatihah) + page 2. Bookmark `progress.json` → **page 3** next.
+- **Schedule:** 3×/day at **6 AM / 12 PM / 6 PM Pakistan time** = `01:00 / 07:00 / 13:00 UTC`
+  (cron in `.github/workflows/post.yml`).
+- **Action secrets (in GitHub, encrypted — NOT in repo):**
+  - `IG_USER_ID` = `17841431955731562` (not sensitive)
+  - `IG_ACCESS_TOKEN` = long-lived (~60-day), **expires ~2026-07-21**.
+
+### ⚠️ Token refresh (the ONLY recurring task)
+Before ~2026-07-21, generate a fresh long-lived token (SETUP.md Part B) and set it with:
+`gh secret set IG_ACCESS_TOKEN` **in a real Terminal app** — do NOT use the Claude Code
+`!` prompt; it isn't interactive and silently stores an EMPTY value (this caused the
+first live run to fail with HTTP 400). A `/schedule` reminder is set for ~2026-07-18.
+
+### Security / hygiene notes
+- Token & App Secret exist ONLY in GitHub encrypted secrets + your local notes — never
+  committed. History scanned clean.
+- `.gitignore` excludes `.claude/`, `CLAUDE.md`, `*.env`, `venv/`, `tmp/`, `output/`,
+  `.DS_Store`. Keep internal/Claude files out of the repo.
+- Bookmark-push hardened with `git pull --rebase` so a concurrent push can't desync it.
 
 ## STATUS — what's DONE ✅
 
