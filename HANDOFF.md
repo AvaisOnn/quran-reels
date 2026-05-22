@@ -8,6 +8,14 @@ monetize later (donations / halal sponsors / digital product).
 
 ---
 
+## 🟢 LIVE as of 2026-05-22
+
+Fully automated and posting. Repo: **github.com/AvaisOnn/quran-reels** (public).
+First reel (page 1, Al-Fatihah) posted to **@thepathtonoor2026**. Cron runs 3×/day.
+Both Action secrets set: `IG_USER_ID`=17841431955731562, `IG_ACCESS_TOKEN` (long-lived,
+expires ~2026-07-21 — re-set before then via `gh secret set IG_ACCESS_TOKEN` in a real
+Terminal, NOT the Claude `!` prompt, which sets an empty value).
+
 ## STATUS — what's DONE ✅
 
 - **Reel generator** works end-to-end and is verified on macOS:
