@@ -1,0 +1,66 @@
+name: Post Quran Reel
+
+# Fires 3x/day (UTC). Adjust times to your audience's timezone.
+on:
+  schedule:
+    - cron: "0 6 * * *"    # ~ morning
+    - cron: "0 12 * * *"   # ~ midday
+    - cron: "0 18 * * *"   # ~ evening
+  workflow_dispatch: {}     # manual "Run workflow" button for testing
+
+permissions:
+  contents: write           # to commit progress.json + create releases
+
+concurrency:
+  group: post-reel          # never run two posts at once
+  cancel-in-progress: false
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg fonts-noto
+
+      - name: Install deps
+        run: pip install pillow arabic-reshaper python-bidi requests
+
+      - name: Read next page
+        id: page
+        run: echo "n=$(python -c "import json,os;print(json.load(open('progress.json'))['next_page'] if os.path.exists('progress.json') else 1)")" >> "$GITHUB_OUTPUT"
+
+      - name: Generate next reel
+        run: python make_next.py 1
+
+      - name: Upload reel as public release asset
+        id: upload
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PAGE=$(printf "%03d" ${{ steps.page.outputs.n }})
+          FILE="output/page_${PAGE}.mp4"
+          TAG="reel-page-${PAGE}-$(date +%s)"
+          gh release create "$TAG" "$FILE" --title "$TAG" --notes "auto"
+          REPO="${GITHUB_REPOSITORY}"
+          echo "url=https://github.com/${REPO}/releases/download/${TAG}/page_${PAGE}.mp4" >> "$GITHUB_OUTPUT"
+
+      - name: Publish to Instagram
+        env:
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+        run: |
+          PAGE=$(printf "%03d" ${{ steps.page.outputs.n }})
+          python post_to_instagram.py "${{ steps.upload.outputs.url }}" "output/page_${PAGE}.txt"
+
+      - name: Commit advanced bookmark
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add progress.json
+          git commit -m "advance to page $(python -c "import json;print(json.load(open('progress.json'))['next_page'])")" || echo "nothing to commit"
+          git push
