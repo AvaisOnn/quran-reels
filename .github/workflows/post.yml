@@ -64,4 +64,5 @@ jobs:
           git config user.email "actions@github.com"
           git add progress.json
           git commit -m "advance to page $(python -c "import json;print(json.load(open('progress.json'))['next_page'])")" || echo "nothing to commit"
+          git pull --rebase origin main
           git push
