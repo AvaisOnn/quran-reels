@@ -1,9 +1,10 @@
 name: Post Quran Reel
 
-# Fires 3x/day (UTC). Adjust times to your audience's timezone.
+# Fires 4x/day (UTC), evenly every 6 hours. Adjust times to your audience's timezone.
 on:
-  # Times are UTC. Pakistan = UTC+5, so these fire at 6 AM / 12 PM / 6 PM PKT.
+  # Times are UTC. Pakistan = UTC+5, so these fire every 6h: 12 AM / 6 AM / 12 PM / 6 PM PKT.
   schedule:
+    - cron: "0 19 * * *"   # 00:00 PKT (midnight)
     - cron: "0 1 * * *"    # 06:00 PKT (morning)
     - cron: "0 7 * * *"    # 12:00 PKT (midday)
     - cron: "0 13 * * *"   # 18:00 PKT (evening)
