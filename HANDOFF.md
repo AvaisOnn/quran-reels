@@ -8,7 +8,7 @@ monetize later (donations / halal sponsors / digital product).
 
 ---
 
-## 🟢 LIVE — READ THIS FIRST (last updated 2026-05-22)
+## 🟢 LIVE — READ THIS FIRST (last updated 2026-05-23)
 
 **The whole pipeline is built, deployed, and auto-posting. Nothing is required to keep
 it running** except one ~60-day token refresh (see below). Resume only if Avais asks
@@ -16,7 +16,7 @@ for a change or something broke.
 
 - **Repo (public):** github.com/AvaisOnn/quran-reels
 - **Instagram:** @thepathtonoor2026 · **FB Page:** "The Path of Noor" (ID 1190981554088688)
-- **Posted so far:** page 1 (Al-Fatihah) + page 2. Bookmark `progress.json` → **page 3** next.
+- **Posted so far (Instagram):** pages 1 (Al-Fatihah)–4. Bookmark `progress.json` → **page 5** next.
 - **Schedule:** 3×/day at **6 AM / 12 PM / 6 PM Pakistan time** = `01:00 / 07:00 / 13:00 UTC`
   (cron in `.github/workflows/post.yml`).
 - **Action secrets (in GitHub, encrypted — NOT in repo):**
@@ -37,6 +37,10 @@ The workflow now also publishes each reel to the FB Page via `post_to_facebook.p
 regenerate the token in Graph API Explorer WITH `pages_manage_posts`, exchange to
 long-lived, then `gh secret set IG_ACCESS_TOKEN` (real Terminal). `FB_PAGE_ID` secret is
 already set. `fb_debug.yml` is a no-post scope checker. IG is unaffected and keeps posting.
+> Note: the `fb_debug.yml` run on 2026-05-23 briefly printed a derived Page token to a
+> public Actions log; that run was **deleted** and the script now redacts tokens. All
+> remaining run logs scanned clean. Regenerating `IG_ACCESS_TOKEN` (above) invalidates
+> that token for good — another reason to do the scope refresh sooner rather than later.
 
 ### Security / hygiene notes
 - Token & App Secret exist ONLY in GitHub encrypted secrets + your local notes — never
@@ -52,29 +56,26 @@ already set. `fb_debug.yml` is a no-post scope checker. IG is unaffected and kee
   backgrounds with slow Ken Burns zoom, dark scrim for legibility, one
   background per reel.
 - **Batch + bookmark**: `make_next.py` generates the next N pages and advances
-  `progress.json`. Currently reset to **page 1** (fresh start).
+  `progress.json`. Live and advancing — currently at **page 5**.
 - **Captions**: auto-generated with surah range + hashtags (`output/page_XXX.txt`).
-- **Instagram publisher** (`post_to_instagram.py`) via Graph API — built.
+- **Instagram publisher** (`post_to_instagram.py`) via Graph API — built & live.
+- **Facebook publisher** (`post_to_facebook.py`) via Reels API — built & wired in,
+  blocked on the `pages_manage_posts` scope (see LIVE section above).
 - **GitHub Actions workflow** (`.github/workflows/post.yml`) — cron 3×/day,
   generates → uploads to a public GitHub Release → posts → commits bookmark.
 - **Cross-platform fonts**: uses Amiri Quran + HarfBuzz (raqm) on Linux/CI,
-  GeezaPro + arabic_reshaper on macOS. (macOS verified; **CI path not yet
-  tested live** — verify on first workflow run.)
+  GeezaPro + arabic_reshaper on macOS. **CI path verified live** (pages 1–4 rendered
+  and posted from GitHub Actions).
 
 ## STATUS — what's NOT done / TODO ⏳
 
-1. **Accounts (Avas is doing this):**
-   - [x] Facebook Page created — **"The Path of Noor"** (Page ID `1190981554088688`).
-   - [x] Instagram account created (**@thepathtonoor2026**) + Creator + linked to the Page.
-   - [x] Meta Developer app created ("Path Of Noor Poster") + 5 IG/pages scopes.
-   - [x] **`IG_USER_ID` = `17841431955731562`** (from me/accounts → instagram_business_account).
-   - [ ] Exchange short token → **long-lived `IG_ACCESS_TOKEN`** (~60 days), then it
-         goes into GitHub Action secrets (never into chat/repo).
-2. **Push to GitHub** (PUBLIC repo so IG can fetch the released video) + add
-   `IG_USER_ID` and `IG_ACCESS_TOKEN` as Action secrets. (Steps in `SETUP.md` Part C.)
-3. **First live test**: Actions tab → "Post Quran Reel" → Run workflow. This is
-   where we confirm the Ubuntu font rendering is correct.
-4. **Open tuning items (not blockers):**
+1. **Accounts** — all done ✅ (Page, IG account, Meta app, `IG_USER_ID`,
+   long-lived `IG_ACCESS_TOKEN`, GitHub push + Action secrets, first live test).
+   The whole IG pipeline is live; see the LIVE section at the top.
+2. **Enable Facebook posting** — regenerate `IG_ACCESS_TOKEN` with the
+   **`pages_manage_posts`** scope (details in the LIVE section). Code is ready;
+   this is the only blocker. *(Avais is doing this later.)*
+3. **Open tuning items (not blockers):**
    - Long pages → long reels (e.g. Al-Baqarah ~160s). Optionally cap at ~90s by
      splitting long pages into 2 reels.
    - Auto token-refresh so the ~60-day token never has to be re-pasted manually.
@@ -103,8 +104,10 @@ open output/page_001.mp4              # preview
 ## KEY FILES
 - `quran_reel.py`     — core builder (text render, audio, ffmpeg, captions)
 - `make_next.py`      — batch + bookmark
-- `post_to_instagram.py` — Graph API publisher
-- `.github/workflows/post.yml` — the 3×/day automation
+- `post_to_instagram.py` — IG Graph API publisher
+- `post_to_facebook.py`  — FB Page Reels publisher (blocked on `pages_manage_posts`)
+- `fb_debug.py` / `.github/workflows/fb-debug.yml` — no-post token/scope checker
+- `.github/workflows/post.yml` — the 3×/day automation (IG + FB)
 - `SETUP.md`          — full account + token + GitHub checklist
 - `progress.json`     — bookmark (next page to post)
 - `backgrounds/`      — NASA galaxy + nature images (committed, used by CI)
