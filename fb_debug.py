@@ -27,7 +27,12 @@ perms = get("me/permissions", {"access_token": USER_TOKEN})
 print(json.dumps(perms, indent=2))
 
 print("\n== me/accounts (pages this token manages) ==")
-print(json.dumps(get("me/accounts", {"access_token": USER_TOKEN}), indent=2))
+acct = get("me/accounts", {"access_token": USER_TOKEN})
+# NEVER print raw page tokens — Actions logs on a public repo are public.
+for p in acct.get("data", []):
+    if "access_token" in p:
+        p["access_token"] = "<redacted %d chars>" % len(p["access_token"])
+print(json.dumps(acct, indent=2))
 
 print("\n== page lookup + page token (fields=name,access_token) ==")
 page = get(PAGE_ID, {"fields": "name,access_token", "access_token": USER_TOKEN})
