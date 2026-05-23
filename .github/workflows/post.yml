@@ -58,6 +58,18 @@ jobs:
           PAGE=$(printf "%03d" ${{ steps.page.outputs.n }})
           python post_to_instagram.py "${{ steps.upload.outputs.url }}" "output/page_${PAGE}.txt"
 
+      - name: Publish to Facebook Page
+        continue-on-error: true   # FB is a bonus; never block IG/bookmark on it
+        env:
+          FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}
+          # Reuse the same long-lived token as IG; the script derives a Page
+          # token from it. Set FB_PAGE_TOKEN secret to override.
+          FB_USER_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          FB_PAGE_TOKEN: ${{ secrets.FB_PAGE_TOKEN }}
+        run: |
+          PAGE=$(printf "%03d" ${{ steps.page.outputs.n }})
+          python post_to_facebook.py "${{ steps.upload.outputs.url }}" "output/page_${PAGE}.txt"
+
       - name: Commit advanced bookmark
         run: |
           git config user.name "github-actions"
