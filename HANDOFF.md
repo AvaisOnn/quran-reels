@@ -29,6 +29,15 @@ Before ~2026-07-21, generate a fresh long-lived token (SETUP.md Part B) and set 
 `!` prompt; it isn't interactive and silently stores an EMPTY value (this caused the
 first live run to fail with HTTP 400). A `/schedule` reminder is set for ~2026-07-18.
 
+### Facebook cross-posting (added 2026-05-23) — BLOCKED on one scope
+The workflow now also publishes each reel to the FB Page via `post_to_facebook.py`
+(Reels API; the step is `continue-on-error` so FB can never block IG or the bookmark).
+**It currently 403s** because `IG_ACCESS_TOKEN` lacks the **`pages_manage_posts`** scope
+(it has `instagram_content_publish` + `pages_read_engagement` only). To enable FB:
+regenerate the token in Graph API Explorer WITH `pages_manage_posts`, exchange to
+long-lived, then `gh secret set IG_ACCESS_TOKEN` (real Terminal). `FB_PAGE_ID` secret is
+already set. `fb_debug.yml` is a no-post scope checker. IG is unaffected and keeps posting.
+
 ### Security / hygiene notes
 - Token & App Secret exist ONLY in GitHub encrypted secrets + your local notes — never
   committed. History scanned clean.
