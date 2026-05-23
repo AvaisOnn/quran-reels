@@ -23,16 +23,30 @@ API = "https://graph.facebook.com/v21.0"
 PAGE_ID = os.environ["FB_PAGE_ID"]
 
 
+def _read_err(e):
+    """Surface Facebook's JSON error body instead of a bare HTTP 403."""
+    try:
+        return e.read().decode()
+    except Exception:
+        return str(e)
+
+
 def _post(path, params):
     data = urllib.parse.urlencode(params).encode()
-    with urllib.request.urlopen(f"{API}/{path}", data=data, timeout=120) as r:
-        return json.load(r)
+    try:
+        with urllib.request.urlopen(f"{API}/{path}", data=data, timeout=120) as r:
+            return json.load(r)
+    except urllib.error.HTTPError as e:
+        raise SystemExit(f"POST {path} -> HTTP {e.code}: {_read_err(e)}")
 
 
 def _get(path, params):
     url = f"{API}/{path}?" + urllib.parse.urlencode(params)
-    with urllib.request.urlopen(url, timeout=120) as r:
-        return json.load(r)
+    try:
+        with urllib.request.urlopen(url, timeout=120) as r:
+            return json.load(r)
+    except urllib.error.HTTPError as e:
+        raise SystemExit(f"GET {path} -> HTTP {e.code}: {_read_err(e)}")
 
 
 def page_token():
