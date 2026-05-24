@@ -2,13 +2,13 @@
 
 **Project folder:** `/Users/apple/quran-reels`
 **Goal:** Faceless Islamic IG page that auto-posts the whole Quran as Reels,
-in order, 3×/day (~604 Mushaf pages ≈ 200 days). Reciter: **Sheikh Yasser
+in order, 4×/day (~604 Mushaf pages ≈ 150 days). Reciter: **Sheikh Yasser
 Al-Dosari**. Arabic only, no English, **no music** (halal). Audience first,
 monetize later (donations / halal sponsors / digital product).
 
 ---
 
-## 🟢 LIVE — READ THIS FIRST (last updated 2026-05-23)
+## 🟢 LIVE — READ THIS FIRST (last updated 2026-05-24)
 
 **The whole pipeline is built, deployed, and auto-posting. Nothing is required to keep
 it running** except one ~60-day token refresh (see below). Resume only if Avais asks
@@ -16,18 +16,25 @@ for a change or something broke.
 
 - **Repo (public):** github.com/AvaisOnn/quran-reels
 - **Instagram:** @thepathtonoor2026 · **FB Page:** "The Path of Noor" (ID 1190981554088688)
-- **Posted so far (Instagram):** pages 1 (Al-Fatihah)–4. Bookmark `progress.json` → **page 5** next.
-- **Schedule:** 3×/day at **6 AM / 12 PM / 6 PM Pakistan time** = `01:00 / 07:00 / 13:00 UTC`
-  (cron in `.github/workflows/post.yml`).
+- **Posted so far (Instagram):** pages 1 (Al-Fatihah)–6 (Al-Baqara 30–37). Bookmark
+  `progress.json` → **page 7** next.
+- **Schedule:** 4×/day every 6h at **12 AM / 6 AM / 12 PM / 6 PM Pakistan time** =
+  `19:00 / 01:00 / 07:00 / 13:00 UTC` (cron in `.github/workflows/post.yml`). *(Changed
+  2026-05-24 from 3×/day to close a 12h overnight gap — now an even 6h spacing.)*
 - **Action secrets (in GitHub, encrypted — NOT in repo):**
   - `IG_USER_ID` = `17841431955731562` (not sensitive)
-  - `IG_ACCESS_TOKEN` = long-lived (~60-day), **expires ~2026-07-21**.
+  - `IG_ACCESS_TOKEN` = long-lived (~60-day) user token, **expires ~2026-07-21**.
 
 ### ⚠️ Token refresh (the ONLY recurring task)
 Before ~2026-07-21, generate a fresh long-lived token (SETUP.md Part B) and set it with:
 `gh secret set IG_ACCESS_TOKEN` **in a real Terminal app** — do NOT use the Claude Code
 `!` prompt; it isn't interactive and silently stores an EMPTY value (this caused the
 first live run to fail with HTTP 400). A `/schedule` reminder is set for ~2026-07-18.
+
+> **2026-05-24:** evaluated swapping to a *permanent* Page access token (derived from a
+> long-lived user token via `/me/accounts`, `expires_at: 0`) to end the refresh chore
+> entirely — Avais chose to **leave the current 60-day token as-is** for now. So the
+> manual refresh above still applies. Revisit the permanent-token route later if desired.
 
 ### Facebook cross-posting (added 2026-05-23) — BLOCKED on one scope
 The workflow now also publishes each reel to the FB Page via `post_to_facebook.py`
@@ -61,7 +68,7 @@ already set. `fb_debug.yml` is a no-post scope checker. IG is unaffected and kee
 - **Instagram publisher** (`post_to_instagram.py`) via Graph API — built & live.
 - **Facebook publisher** (`post_to_facebook.py`) via Reels API — built & wired in,
   blocked on the `pages_manage_posts` scope (see LIVE section above).
-- **GitHub Actions workflow** (`.github/workflows/post.yml`) — cron 3×/day,
+- **GitHub Actions workflow** (`.github/workflows/post.yml`) — cron 4×/day (every 6h),
   generates → uploads to a public GitHub Release → posts → commits bookmark.
 - **Cross-platform fonts**: uses Amiri Quran + HarfBuzz (raqm) on Linux/CI,
   GeezaPro + arabic_reshaper on macOS. **CI path verified live** (pages 1–4 rendered
@@ -107,7 +114,7 @@ open output/page_001.mp4              # preview
 - `post_to_instagram.py` — IG Graph API publisher
 - `post_to_facebook.py`  — FB Page Reels publisher (blocked on `pages_manage_posts`)
 - `fb_debug.py` / `.github/workflows/fb-debug.yml` — no-post token/scope checker
-- `.github/workflows/post.yml` — the 3×/day automation (IG + FB)
+- `.github/workflows/post.yml` — the 4×/day (every 6h) automation (IG + FB)
 - `SETUP.md`          — full account + token + GitHub checklist
 - `progress.json`     — bookmark (next page to post)
 - `backgrounds/`      — NASA galaxy + nature images (committed, used by CI)
