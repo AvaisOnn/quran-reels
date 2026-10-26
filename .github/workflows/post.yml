@@ -20,6 +20,7 @@ concurrency:
 jobs:
   post:
     runs-on: ubuntu-latest
+    timeout-minutes: 30       # never let a hung step block the queue for hours
     steps:
       - uses: actions/checkout@v4
 
@@ -27,7 +28,10 @@ jobs:
         with: { python-version: "3.12" }
 
       - name: Install ffmpeg
-        run: sudo apt-get update && sudo apt-get install -y ffmpeg fonts-noto
+        timeout-minutes: 8      # apt mirrors occasionally stall forever
+        run: |
+          APT="-o Acquire::Retries=3 -o Acquire::http::Timeout=30"
+          sudo apt-get $APT update && sudo apt-get $APT install -y ffmpeg fonts-noto
 
       - name: Install deps
         run: pip install pillow arabic-reshaper python-bidi requests
