@@ -1,154 +1,135 @@
 # HANDOFF — Quran Reels Instagram automation
 
-**Project folder:** `/Users/apple/quran-reels`
-**Goal:** Faceless Islamic IG page that auto-posts the whole Quran as Reels,
-in order, 4×/day (~604 Mushaf pages ≈ 150 days). Reciter: **Sheikh Yasser
-Al-Dosari**. Arabic only, no English, **no music** (halal). Audience first,
-monetize later (donations / halal sponsors / digital product).
+**Project folder:** `/Users/apple/quran-reels` (new MacBook, user `apple`)
+**Goal:** Faceless Islamic IG page that auto-posts Quran reels 4×/day. Reciter:
+**Sheikh Yasser Al-Dosari**. **No music** (halal). Audience first, monetize later
+(donations / halal sponsors / digital product).
+
+**Phase 1 (done 2026-10-23):** the whole Quran, page by page (pages 1–604).
+**Phase 2 (live since 2026-10-26):** curated **viral verses**, Arabic + English.
 
 ---
 
-## 🔄 2026-10-26 — SWITCHED TO VIRAL-VERSE MODE
+## 🟢 LIVE — READ THIS FIRST (last updated 2026-10-26)
 
-The full Quran (pages 1–604) finished posting on 2026-10-23. The workflow now runs
-**`make_viral.py`**, which posts one reel per run from the curated list in
-**`viral_verses.json`** (177 popular verses/passages, e.g. 94:5-6, 39:53, 2:255).
-- Arabic (white) + **English, Sahih International** (gold, bundled `fonts/Lora-Italic.ttf`).
-- Bookmark: `progress.json` → `next_viral` (index; loops back to the start after the
-  last entry). `next_page` is kept but no longer used. `make_next.py` is the old page mode.
-- Output is `output/reel.mp4` + `output/reel.txt` (caption = translation + ref + tags).
-- To add/remove verses, edit `viral_verses.json` (`"surah:ayah"` or `"surah:from-to"`).
-  Use whole verses whose full meaning matches the viral message (65:2, 2:216, 2:222,
-  12:18, 12:64 were dropped: their popular part is only half the verse).
-- IG token was still valid on 2026-10-23 despite the July expiry estimate. FB still 403s
-  (missing `pages_manage_posts`).
-
-## 🟢 LIVE — READ THIS FIRST (last updated 2026-05-24)
-
-**The whole pipeline is built, deployed, and auto-posting. Nothing is required to keep
-it running** except one ~60-day token refresh (see below). Resume only if Avais asks
-for a change or something broke.
+**The pipeline is built, deployed, and auto-posting. Nothing is required to keep it
+running.** Resume only if Avais asks for a change or something broke.
 
 - **Repo (public):** github.com/AvaisOnn/quran-reels
 - **Instagram:** @thepathtonoor2026 · **FB Page:** "The Path of Noor" (ID 1190981554088688)
-- **Posted so far (Instagram):** pages 1 (Al-Fatihah)–6 (Al-Baqara 30–37). Bookmark
-  `progress.json` → **page 7** next.
+- **Mode:** each run posts the next entry from `viral_verses.json` (177 entries).
+  First viral post went live 2026-10-26 (94:5-6, IG media id `18090272759268422`).
+  Bookmark `progress.json` → `next_viral` = **1** (i.e. 39:53 is next).
+  The list loops back to the start after the last entry (~44 days at 4×/day).
 - **Schedule:** 4×/day every 6h at **12 AM / 6 AM / 12 PM / 6 PM Pakistan time** =
-  `19:00 / 01:00 / 07:00 / 13:00 UTC` (cron in `.github/workflows/post.yml`). *(Changed
-  2026-05-24 from 3×/day to close a 12h overnight gap — now an even 6h spacing.)*
-- **Action secrets (in GitHub, encrypted — NOT in repo):**
-  - `IG_USER_ID` = `17841431955731562` (not sensitive)
-  - `IG_ACCESS_TOKEN` = long-lived (~60-day) user token, **expires ~2026-07-21**.
+  `19:00 / 01:00 / 07:00 / 13:00 UTC` (cron in `.github/workflows/post.yml`).
+  Manual run: `gh workflow run post.yml -R AvaisOnn/quran-reels` (posts publicly!).
+- **Action secrets (in GitHub, encrypted — NOT in repo):** `IG_USER_ID`
+  (`17841431955731562`, not sensitive), `IG_ACCESS_TOKEN`, `FB_PAGE_ID`.
 
-### ⚠️ Token refresh (the ONLY recurring task)
-Before ~2026-07-21, generate a fresh long-lived token (SETUP.md Part B) and set it with:
-`gh secret set IG_ACCESS_TOKEN` **in a real Terminal app** — do NOT use the Claude Code
-`!` prompt; it isn't interactive and silently stores an EMPTY value (this caused the
-first live run to fail with HTTP 400).
+### What a reel looks like (viral mode)
+- One reel per entry; one clip per ayah, all on one background (galaxy/nature,
+  slow Ken Burns zoom, dark scrim).
+- **Arabic** (white, tashkeel) on top, **English — Sahih International** (gold, Lora
+  Italic) underneath, `surah:ayah` at the bottom. Text auto-shrinks for long verses
+  (Ayat al-Kursi fits).
+- Caption: the English translation in quotes, surah name + ref, "save & share" line,
+  hashtags (`build_viral_caption` in `quran_reel.py`).
+- Basmala is stripped from ayah 1 of a surah (except Al-Fatihah) because the per-ayah
+  audio doesn't recite it.
 
-> **2026-07-07 — auto-reminders DISABLED.** Two `/schedule` cloud routines
-> (`trig_01Budh…` and `trig_013Apj…`, both one-time for ~2026-07-18) were set up in
-> May to remind about this refresh. They were **created under *Sana's* Claude account**,
-> so they ran as her and their ClickUp connector surfaced the reminder to Sana instead of
-> Avais (one was manually run early on 2026-07-07, which is how it fired ahead of the
-> 07-18 schedule). Both are now **disabled** and their **ClickUp connector stripped**
-> (Fathom only remains) — nothing will ping anymore. **There is no active reminder now** —
-> Avais is doing the refresh manually closer to the ~2026-07-21 expiry. To re-arm, use
-> `/schedule` under the correct account.
+### Editing the verse list
+`viral_verses.json` is a plain JSON list of `"surah:ayah"` or `"surah:from-to"`
+(e.g. `"94:5-6"`). Posted in file order. Rules used when curating:
+- **Whole verses only**, and only where the full verse carries the viral message.
+  Dropped for that reason: 65:2 (divorce — kept 65:3), 2:216 (fighting), 2:222
+  (menstruation), 12:18, 12:64 — their popular line is only half the verse.
+- Keep passages short (1–5 ayahs). Validate new refs with `qr.fetch_verses(ref)`.
+- If you insert/remove entries **before** the bookmark index, adjust `next_viral`
+  in `progress.json` so nothing is skipped or repeated.
 
-> **2026-05-24:** evaluated swapping to a *permanent* Page access token (derived from a
-> long-lived user token via `/me/accounts`, `expires_at: 0`) to end the refresh chore
-> entirely — Avais chose to **leave the current 60-day token as-is** for now. So the
-> manual refresh above still applies. Revisit the permanent-token route later if desired.
+### Token status
+- `IG_ACCESS_TOKEN` was set 2026-05-22 and HANDOFF expected expiry ~2026-07-21, but
+  **it was still posting fine on 2026-10-26**. Real expiry unknown. If IG posts start
+  failing with HTTP 400/190, regenerate it (SETUP.md Part B).
+- Set secrets with `gh secret set IG_ACCESS_TOKEN` **in a real Terminal app** — NOT the
+  Claude Code `!` prompt (non-interactive → silently stores an EMPTY value).
+- 2026-05-24: Avais chose to keep the 60-day user token instead of a permanent Page
+  token. Revisit if refreshes become a chore.
+- No reminder is armed. (The old `/schedule` reminders were created under *Sana's*
+  Claude account, fired to her, and were disabled on 2026-07-07.)
 
-### Facebook cross-posting (added 2026-05-23) — BLOCKED on one scope
-The workflow now also publishes each reel to the FB Page via `post_to_facebook.py`
-(Reels API; the step is `continue-on-error` so FB can never block IG or the bookmark).
-**It currently 403s** because `IG_ACCESS_TOKEN` lacks the **`pages_manage_posts`** scope
-(it has `instagram_content_publish` + `pages_read_engagement` only). To enable FB:
-regenerate the token in Graph API Explorer WITH `pages_manage_posts`, exchange to
-long-lived, then `gh secret set IG_ACCESS_TOKEN` (real Terminal). `FB_PAGE_ID` secret is
-already set. `fb_debug.yml` is a no-post scope checker. IG is unaffected and keeps posting.
-> Note: the `fb_debug.yml` run on 2026-05-23 briefly printed a derived Page token to a
-> public Actions log; that run was **deleted** and the script now redacts tokens. All
-> remaining run logs scanned clean. Regenerating `IG_ACCESS_TOKEN` (above) invalidates
-> that token for good — another reason to do the scope refresh sooner rather than later.
+### Facebook cross-posting — still BLOCKED on one scope
+Every run's FB step returns **HTTP 403** (`pages_manage_posts` missing). The step is
+`continue-on-error`, so it never blocks IG or the bookmark. To enable: regenerate the
+token in Graph API Explorer WITH `pages_manage_posts`, exchange to long-lived, then
+`gh secret set IG_ACCESS_TOKEN` (real Terminal). `fb_debug.yml` is a no-post scope checker.
 
-### Security / hygiene notes
-- Token & App Secret exist ONLY in GitHub encrypted secrets + your local notes — never
-  committed. History scanned clean.
+### Workflow hardening
+- **2026-10-26:** a run hung 15+ min on `apt-get` (stalled Ubuntu mirror); default job
+  timeout is 6h. Added `timeout-minutes: 30` on the job, `8` on the ffmpeg install,
+  and apt retries/timeouts. A stuck run now fails fast; the next slot posts normally.
+- Bookmark push uses `git pull --rebase` so a concurrent push can't desync it.
+- `concurrency: post-reel` — never two posts at once.
+
+### Security / hygiene
+- Token & App Secret exist ONLY in GitHub encrypted secrets + Avais's local notes.
 - `.gitignore` excludes `.claude/`, `CLAUDE.md`, `*.env`, `venv/`, `tmp/`, `output/`,
-  `.DS_Store`. Keep internal/Claude files out of the repo.
-- Bookmark-push hardened with `git pull --rebase` so a concurrent push can't desync it.
-
-## STATUS — what's DONE ✅
-
-- **Reel generator** works end-to-end and is verified on macOS:
-  Arabic + full tashkeel, Al-Dosari per-ayah audio, calm NASA galaxy/nature
-  backgrounds with slow Ken Burns zoom, dark scrim for legibility, one
-  background per reel.
-- **Batch + bookmark**: `make_next.py` generates the next N pages and advances
-  `progress.json`. Live and advancing — currently at **page 5**.
-- **Captions**: auto-generated with surah range + hashtags (`output/page_XXX.txt`).
-- **Instagram publisher** (`post_to_instagram.py`) via Graph API — built & live.
-- **Facebook publisher** (`post_to_facebook.py`) via Reels API — built & wired in,
-  blocked on the `pages_manage_posts` scope (see LIVE section above).
-- **GitHub Actions workflow** (`.github/workflows/post.yml`) — cron 4×/day (every 6h),
-  generates → uploads to a public GitHub Release → posts → commits bookmark.
-- **Cross-platform fonts**: uses Amiri Quran + HarfBuzz (raqm) on Linux/CI,
-  GeezaPro + arabic_reshaper on macOS. **CI path verified live** (pages 1–4 rendered
-  and posted from GitHub Actions).
-
-## STATUS — what's NOT done / TODO ⏳
-
-1. **Accounts** — all done ✅ (Page, IG account, Meta app, `IG_USER_ID`,
-   long-lived `IG_ACCESS_TOKEN`, GitHub push + Action secrets, first live test).
-   The whole IG pipeline is live; see the LIVE section at the top.
-2. **Enable Facebook posting** — regenerate `IG_ACCESS_TOKEN` with the
-   **`pages_manage_posts`** scope (details in the LIVE section). Code is ready;
-   this is the only blocker. *(Avais is doing this later.)*
-3. **Open tuning items (not blockers):**
-   - Long pages → long reels (e.g. Al-Baqarah ~160s). Optionally cap at ~90s by
-     splitting long pages into 2 reels.
-   - Auto token-refresh so the ~60-day token never has to be re-pasted manually.
+  `.DS_Store`.
+- 2026-05-23: an `fb_debug.yml` run printed a derived Page token to a public log; run
+  deleted, script now redacts. Regenerating `IG_ACCESS_TOKEN` invalidates it for good.
 
 ---
 
-## RESUME HERE TOMORROW
+## TODO / ideas ⏳
+1. **Enable Facebook** — regenerate token with `pages_manage_posts` (Avais, later).
+2. **Find out the IG token's real expiry** (Graph API `debug_token`) and set a reminder
+   under the correct Claude account.
+3. Optional: grow `viral_verses.json` before it loops (~2026-12-09), or shuffle themes.
+4. Optional: auto token refresh / permanent Page token.
 
-**If the accounts/token are ready** → do GitHub push + secrets (`SETUP.md` Part C),
-then run the workflow once and check the posted reel.
-
-**If still working on the Meta app** → finish `SETUP.md` Part B; the tricky bits:
-get `IG_USER_ID` via `me/accounts` → `{page-id}?fields=instagram_business_account`,
-then exchange the short token for a long-lived one.
-
-**To preview/generate locally meanwhile:**
+## Preview locally (does NOT post)
 ```
 cd ~/quran-reels
-./venv/bin/python make_next.py 3      # next 3 reels -> output/page_XXX.mp4 (+ .txt)
-cat progress.json                     # current page (of 604)
-open output/page_001.mp4              # preview
+./venv/bin/python -c "import quran_reel as qr; a=qr.fetch_verses('2:255'); qr.build_reel(a,'/tmp/t.mp4',bg_seed=0); print(qr.build_viral_caption(a))"
+open /tmp/t.mp4
 ```
-> Note: `make_next.py` advances `progress.json`. If you only want to *preview*
-> without burning the bookmark, reset it after: `echo '{"next_page": 1}' > progress.json`
+Don't run `make_viral.py` locally unless you mean to — it advances `progress.json`
+(only matters if you commit it). macOS has no raqm, so local Arabic uses GeezaPro +
+arabic_reshaper and wraps narrower than CI (Amiri Quran + HarfBuzz).
 
 ## KEY FILES
-- `quran_reel.py`     — core builder (text render, audio, ffmpeg, captions)
-- `make_next.py`      — batch + bookmark
+- `make_viral.py`        — **current** driver: next entry from `viral_verses.json`
+                           → `output/reel.mp4` + `output/reel.txt`, advances `next_viral`
+- `viral_verses.json`    — curated verse list (177 entries)
+- `quran_reel.py`        — core builder: `fetch_verses` (Arabic + en.sahih via
+                           alquran.cloud, 429 back-off), overlay render, audio, ffmpeg,
+                           captions
+- `make_next.py`         — Phase 1 page-by-page driver (finished; kept for reference)
 - `post_to_instagram.py` — IG Graph API publisher
 - `post_to_facebook.py`  — FB Page Reels publisher (blocked on `pages_manage_posts`)
 - `fb_debug.py` / `.github/workflows/fb-debug.yml` — no-post token/scope checker
-- `.github/workflows/post.yml` — the 4×/day (every 6h) automation (IG + FB)
-- `SETUP.md`          — full account + token + GitHub checklist
-- `progress.json`     — bookmark (next page to post)
-- `backgrounds/`      — NASA galaxy + nature images (committed, used by CI)
-- `fonts/`            — Amiri Quran (for CI HarfBuzz path)
-- `venv/`, `tmp/`, `output/` — gitignored
+- `.github/workflows/post.yml` — 4×/day automation: generate → GitHub Release →
+                                  IG → FB → commit bookmark
+- `progress.json`        — `next_viral` (live) + `next_page: 605` (Phase 1, done)
+- `backgrounds/`         — NASA galaxy + nature images
+- `fonts/`               — Amiri Quran (CI Arabic), Lora Italic (English)
+- `SETUP.md`             — account + token + GitHub checklist
 
 ## DECISIONS LOCKED
 - Reciter: Yasser Al-Dosari (`everyayah.com/data/Yasser_Ad-Dussary_128kbps/SSSAAA.mp3`)
-- Arabic text: alquran.cloud `quran-uthmani`
-- Chunking: one Mushaf page per reel (604 total)
-- Runner: GitHub Actions; backgrounds = one per reel (calmer)
+- Text: alquran.cloud `quran-uthmani`; translation `en.sahih` (Sahih International)
+- Content: curated popular verses, rendered ourselves on our own backgrounds —
+  **no scraping or reposting other creators' reels** (IG "unoriginal content"
+  penalty + copyright).
+- Runner: GitHub Actions; one background per reel.
 - Halal: no music; can't charge for recitation, but view/ad income on da'wah is OK.
+
+## HISTORY
+- 2026-05-22 → 05-24: pipeline built, IG live, FB wired (blocked), schedule 4×/day.
+- 2026-07-07: misrouted token reminders disabled.
+- 2026-10-23: Phase 1 complete — page 604 posted (IG media `17947772331074794`).
+- 2026-10-23 → 10-26: every run failed (`no matches found for output/page_605.mp4`) —
+  nothing left to post.
+- 2026-10-26: switched to viral-verse mode (Arabic + English); first post live; workflow
+  timeouts added. Repo re-located on the new MacBook at `/Users/apple/quran-reels`.
