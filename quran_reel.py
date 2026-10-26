@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """Core reel builder. One background per reel, Arabic + tashkeel, Al-Dosari audio."""
-import os, subprocess, json, glob, urllib.request, textwrap, random
+import os, subprocess, json, glob, urllib.request, urllib.error, textwrap, random, time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 RECITER = "Yasser_Ad-Dussary_128kbps"
 AUDIO_BASE = f"https://everyayah.com/data/{RECITER}"
 PAGE_API = "https://api.alquran.cloud/v1/page/{page}/quran-uthmani"
+SURAH_API = ("https://api.alquran.cloud/v1/surah/{surah}/editions/quran-uthmani,en.sahih"
+             "?offset={offset}&limit={limit}")
 # Rendering Arabic correctly needs either (a) a HarfBuzz shaper (raqm) — present
 # in Pillow's Linux/CI wheels — used with raw Unicode + a proper Quran font, or
 # (b) on macOS (no raqm), the arabic_reshaper hack + a presentation-form font.
@@ -14,6 +16,7 @@ HAS_RAQM = _pil_features.check("raqm")
 AMIRI = os.path.join(HERE, "fonts/AmiriQuran-Regular.ttf")  # bundled, for raqm path
 GEEZA = "/System/Library/Fonts/Supplemental/GeezaPro.ttc"   # macOS fallback
 ARABIC_FONT = AMIRI if HAS_RAQM else GEEZA
+ENGLISH_FONT = os.path.join(HERE, "fonts/Lora-Italic.ttf")  # bundled, same on Mac + CI
 LATIN_FONT = ("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
               if HAS_RAQM else "/System/Library/Fonts/Helvetica.ttc")
 BG_DIR = os.path.join(HERE, "backgrounds")
@@ -31,6 +34,34 @@ def fetch_page(page):
               "text": a["text"], "surah_en": a["surah"]["englishName"],
               "surah_ar": a["surah"]["name"]} for a in data["ayahs"]]
     return ayahs
+
+def fetch_verses(ref):
+    """ref like "2:255" or "94:5-6". Returns ayah dicts with Arabic + English."""
+    surah, ayahs = ref.split(":")
+    surah = int(surah)
+    lo, _, hi = ayahs.partition("-")
+    lo, hi = int(lo), int(hi or lo)
+    url = SURAH_API.format(surah=surah, offset=lo - 1, limit=hi - lo + 1)
+    for attempt in range(5):
+        try:
+            with urllib.request.urlopen(url, timeout=30) as r:
+                ar, en = json.load(r)["data"]
+            break
+        except urllib.error.HTTPError as e:
+            if e.code != 429 or attempt == 4:
+                raise
+            time.sleep(5 * (attempt + 1))   # API rate limit — back off
+    out = []
+    for a, t in zip(ar["ayahs"], en["ayahs"]):
+        text = a["text"].lstrip("\ufeff")
+        # The API prefixes ayah 1 of most surahs with the Basmala, but the
+        # per-ayah audio does not recite it — drop it so text matches audio.
+        if a["numberInSurah"] == 1 and surah not in (1, 9) and text.startswith("بِسْمِ"):
+            text = text.split(" ", 4)[4]
+        out.append({"surah": surah, "ayah": a["numberInSurah"], "text": text,
+                    "en": t["text"], "surah_en": ar["englishName"],
+                    "surah_ar": ar["name"]})
+    return out
 
 def fetch_audio(surah, ayah, dest):
     urllib.request.urlretrieve(f"{AUDIO_BASE}/{surah:03d}{ayah:03d}.mp3", dest)
@@ -53,17 +84,42 @@ def _shape_lines(arabic_text, chars_per_line):
         configuration={"delete_harakat": False, "support_ligatures": True})
     return [get_display(reshaper.reshape(l)) for l in raw_lines]
 
-def render_text_overlay(arabic_text, surah, ayah, dest):
+def _wrap_px(text, font, max_w, draw):
+    """Greedy word wrap by rendered pixel width (for the English line)."""
+    lines, cur = [], ""
+    for word in text.split():
+        trial = f"{cur} {word}".strip()
+        if cur and draw.textlength(trial, font=font) > max_w:
+            lines.append(cur)
+            cur = word
+        else:
+            cur = trial
+    return lines + ([cur] if cur else [])
+
+def render_text_overlay(arabic_text, surah, ayah, dest, english=None):
     from PIL import Image, ImageDraw, ImageFont, ImageFilter
     img = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
-    size = 92 if len(arabic_text) < 120 else (70 if len(arabic_text) < 260 else 52)
-    font = ImageFont.truetype(ARABIC_FONT, size)
     draw_kw = {"direction": "rtl"} if HAS_RAQM else {}   # let HarfBuzz do RTL
-    chars_per_line = max(16, int(W / (size * 0.62)))
-    lines = _shape_lines(arabic_text, chars_per_line)
-    line_h = int(size * 1.95)
-    block_h = line_h * len(lines)
+    size = 92 if len(arabic_text) < 120 else (70 if len(arabic_text) < 260 else 52)
+    en_size = 46
+    # Shrink both until Arabic + English fit between the top and the reference.
+    while True:
+        font = ImageFont.truetype(ARABIC_FONT, size)
+        chars_per_line = max(16, int(W / (size * 0.62)))
+        lines = _shape_lines(arabic_text, chars_per_line)
+        line_h = int(size * 1.95)
+        ar_h = line_h * len(lines)
+        en_lines, en_line_h, gap = [], 0, 0
+        if english:
+            en_font = ImageFont.truetype(ENGLISH_FONT, en_size)
+            en_lines = _wrap_px(english, en_font, W - 220, draw)
+            en_line_h = int(en_size * 1.45)
+            gap = int(size * 0.9)
+        block_h = ar_h + gap + en_line_h * len(en_lines)
+        if block_h <= H - 520 or size <= 36:
+            break
+        size, en_size = int(size * 0.9), max(30, int(en_size * 0.92))
     y0 = (H - block_h) // 2
     scrim = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     sdraw = ImageDraw.Draw(scrim)
@@ -78,6 +134,12 @@ def render_text_overlay(arabic_text, surah, ayah, dest):
         draw.text((x + 3, y + 3), line, font=font, fill=(0, 0, 0, 200), **draw_kw)
         draw.text((x, y), line, font=font, fill=WHITE, **draw_kw)
         y += line_h
+    y += gap
+    for line in en_lines:
+        x = (W - draw.textlength(line, font=en_font)) // 2
+        draw.text((x + 2, y + 2), line, font=en_font, fill=(0, 0, 0, 200))
+        draw.text((x, y), line, font=en_font, fill=GOLD)
+        y += en_line_h
     ref_font = ImageFont.truetype(LATIN_FONT, 38)
     ref = f"{surah}:{ayah}"
     rb = draw.textbbox((0, 0), ref, font=ref_font)
@@ -112,7 +174,7 @@ def build_reel(ayahs, out, bg_seed):
         ov = os.path.join(TMP, f"{s:03d}{n:03d}_ov.png")
         aud = os.path.join(TMP, f"{s:03d}{n:03d}.mp3")
         clip = os.path.join(TMP, f"{s:03d}{n:03d}.mp4")
-        render_text_overlay(a["text"], s, n, ov)
+        render_text_overlay(a["text"], s, n, ov, english=a.get("en"))
         fetch_audio(s, n, aud)
         make_clip(bg, ov, aud, clip)
         clips.append(clip)
@@ -140,3 +202,14 @@ def build_caption(ayahs, page):
             "#tilawat #beautifulrecitation #qurandaily")
     return (f"📖 {rng}\n\nالسلام عليكم — Quran, page {page} of 604.\n"
             f"Recitation: Sheikh Yasser Al-Dosari.\n\nFollow to complete the whole Quran with us, one page at a time. 🤍\n\n{tags}")
+
+def build_viral_caption(ayahs):
+    first, last = ayahs[0], ayahs[-1]
+    ref = f"{first['surah_en']} {first['surah']}:{first['ayah']}" + (
+        f"-{last['ayah']}" if last['ayah'] != first['ayah'] else "")
+    english = " ".join(a["en"] for a in ayahs)
+    tags = ("#quran #islam #quranverses #islamicreminder #muslim #allah #deen "
+            "#qurantilawat #yasseraldosari #quranquotes #islamicquotes #dua "
+            "#reminder #faith #sabr")
+    return (f"“{english}”\n\n📖 {ref}\nRecitation: Sheikh Yasser Al-Dosari.\n\n"
+            f"Save this as a reminder and share it with someone who needs it today. 🤍\n\n{tags}")

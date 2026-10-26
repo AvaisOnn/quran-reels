@@ -8,6 +8,21 @@ monetize later (donations / halal sponsors / digital product).
 
 ---
 
+## 🔄 2026-10-26 — SWITCHED TO VIRAL-VERSE MODE
+
+The full Quran (pages 1–604) finished posting on 2026-10-23. The workflow now runs
+**`make_viral.py`**, which posts one reel per run from the curated list in
+**`viral_verses.json`** (177 popular verses/passages, e.g. 94:5-6, 39:53, 2:255).
+- Arabic (white) + **English, Sahih International** (gold, bundled `fonts/Lora-Italic.ttf`).
+- Bookmark: `progress.json` → `next_viral` (index; loops back to the start after the
+  last entry). `next_page` is kept but no longer used. `make_next.py` is the old page mode.
+- Output is `output/reel.mp4` + `output/reel.txt` (caption = translation + ref + tags).
+- To add/remove verses, edit `viral_verses.json` (`"surah:ayah"` or `"surah:from-to"`).
+  Use whole verses whose full meaning matches the viral message (65:2, 2:216, 2:222,
+  12:18, 12:64 were dropped: their popular part is only half the verse).
+- IG token was still valid on 2026-10-23 despite the July expiry estimate. FB still 403s
+  (missing `pages_manage_posts`).
+
 ## 🟢 LIVE — READ THIS FIRST (last updated 2026-05-24)
 
 **The whole pipeline is built, deployed, and auto-posting. Nothing is required to keep
@@ -29,7 +44,17 @@ for a change or something broke.
 Before ~2026-07-21, generate a fresh long-lived token (SETUP.md Part B) and set it with:
 `gh secret set IG_ACCESS_TOKEN` **in a real Terminal app** — do NOT use the Claude Code
 `!` prompt; it isn't interactive and silently stores an EMPTY value (this caused the
-first live run to fail with HTTP 400). A `/schedule` reminder is set for ~2026-07-18.
+first live run to fail with HTTP 400).
+
+> **2026-07-07 — auto-reminders DISABLED.** Two `/schedule` cloud routines
+> (`trig_01Budh…` and `trig_013Apj…`, both one-time for ~2026-07-18) were set up in
+> May to remind about this refresh. They were **created under *Sana's* Claude account**,
+> so they ran as her and their ClickUp connector surfaced the reminder to Sana instead of
+> Avais (one was manually run early on 2026-07-07, which is how it fired ahead of the
+> 07-18 schedule). Both are now **disabled** and their **ClickUp connector stripped**
+> (Fathom only remains) — nothing will ping anymore. **There is no active reminder now** —
+> Avais is doing the refresh manually closer to the ~2026-07-21 expiry. To re-arm, use
+> `/schedule` under the correct account.
 
 > **2026-05-24:** evaluated swapping to a *permanent* Page access token (derived from a
 > long-lived user token via `/me/accounts`, `expires_at: 0`) to end the refresh chore
